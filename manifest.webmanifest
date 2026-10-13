@@ -1,0 +1,17 @@
+{
+  "name": "Cuaderno de Frases",
+  "short_name": "Frases",
+  "description": "Entrenador de traduccion espanol-ingles con pistas, audio, IPA y repeticion espaciada.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EDF0F5",
+  "theme_color": "#1F6B5B",
+  "lang": "es",
+  "icons": [
+    { "src": "icono-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icono.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icono.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
