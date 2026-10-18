@@ -153,6 +153,9 @@ label.check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accen
 .ipa{font-family:var(--f-mono);font-size:14.5px;color:var(--ink-soft);margin-top:6px;line-height:1.7;overflow-wrap:anywhere}
 .ipa mark{background:var(--hint-soft);color:var(--hint);border-radius:3px;padding:0 2px;font-weight:500;
   border-bottom:1px dotted var(--hint)}
+.sol .es-sol{font-family:var(--f-txt);font-size:17px;color:var(--ink-soft);margin-top:10px;
+  line-height:1.35;padding-left:11px;border-left:2px solid var(--line)}
+.sol .es-sol .nota{font-size:14px;opacity:.75}
 .vocalink{font-size:13px;color:var(--ink-soft);margin-top:10px}
 .shadow-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
@@ -162,6 +165,8 @@ label.check input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--accen
 .listen{min-height:46vh;display:flex;flex-direction:column;justify-content:center;gap:14px;text-align:center;cursor:pointer}
 .listen .es{font-family:var(--f-txt);font-size:27px;line-height:1.3;margin:0;text-wrap:balance}
 .listen .en{font-family:var(--f-txt);font-size:17px;color:var(--ink-soft);margin:0}
+.listen .ipa{margin-top:-6px;text-align:center}
+.listen .ipa:empty{display:none}
 .dots{display:flex;gap:7px;justify-content:center;margin-top:4px}
 .dots i{width:9px;height:9px;border-radius:50%;background:var(--line)}
 .dots i.on{background:var(--accent)}
@@ -401,6 +406,7 @@ table.err td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:60
       <p class="es" id="lEs"></p>
       <div class="dots" id="lDots"></div>
       <p class="en" id="lEn"></p>
+      <div class="ipa" id="lIpa"></div>
       <div class="tiny">Toca la pantalla para pasar a la siguiente. Avanza sola tras 4 repeticiones.</div>
     </div>
   </div>
@@ -1312,6 +1318,8 @@ function consolidate(){
     '<button class="spk sm" id="solSpk" aria-label="Escuchar en inglés"><svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4zm12.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4zM14 2.2v2.1a7.5 7.5 0 0 1 0 15.4v2.1a9.6 9.6 0 0 0 0-19.6z"/></svg></button></div>' +
     (f.ipa ? '<div class="ipa">' + ipaHtml(f.ipa) + '</div>'
            : '<div class="ipa muted">Fonética pendiente de transcribir.</div>') +
+    '<div class="es-sol">' + esc(f.es) +
+      (f.nota ? ' <span class="nota">(' + esc(f.nota) + ')</span>' : '') + '</div>' +
     (sc ? '<div class="tiny" style="margin-top:6px">Ojo con «'+esc(sc)+'»: empieza por s + consonante, sin e delante.</div>' : '') +
     vocaLink +
     '<div class="shadow-ctl"><span class="lbl">Shadowing · repite en voz alta en el silencio</span>' +
@@ -1436,8 +1444,11 @@ $('pFlag').onclick = () => {
 };
 $('answer').addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); doCheck(); } });
 document.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && !$('v-practica').classList.contains('hidden')
-     && !$('pNext').classList.contains('hidden') && document.activeElement !== $('answer')){
+  // El Enter que escribes en una casilla nunca avanza de tarjeta: si no, el mismo
+  // golpe de tecla que comprueba la respuesta se llevaría por delante la solución.
+  const t = e.target, campo = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT');
+  if(e.key === 'Enter' && !campo && !$('v-practica').classList.contains('hidden')
+     && !$('pNext').classList.contains('hidden')){
     e.preventDefault(); nextCard();
   }
 });
@@ -1480,6 +1491,7 @@ function listenRender(){
   const f = face(L.q[L.i]);
   $('lEs').textContent = f.es;
   $('lEn').textContent = $('lShowEn').checked ? f.en : '';
+  $('lIpa').innerHTML = ($('lShowEn').checked && f.ipa) ? ipaHtml(f.ipa) : '';
   $('lCount').textContent = (L.i+1) + ' / ' + L.q.length;
   L.rep = 0; listenDots(); listenPlay();
 }
@@ -1508,7 +1520,9 @@ $('lPause').onclick = e => {
   $('lPause').textContent = L.paused ? 'Continuar' : 'Pausar';
   if(L.paused){ clearTimeout(L.timer); stopSpeak(); } else listenPlay();
 };
-$('lShowEn').onchange = () => { if(L) $('lEn').textContent = $('lShowEn').checked ? face(L.q[L.i]).en : ''; };
+$('lShowEn').onchange = () => { if(!L) return; const f = face(L.q[L.i]);
+  $('lEn').textContent = $('lShowEn').checked ? f.en : '';
+  $('lIpa').innerHTML = ($('lShowEn').checked && f.ipa) ? ipaHtml(f.ipa) : ''; };
 
 /* ============================== ARCHIVOS ============================== */
 function renderLib(){
