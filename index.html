@@ -3,17 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1F6B5B">
-<meta name="description" content="Entrenador de traduccion espanol-ingles con pistas progresivas, audio, IPA y repeticion espaciada. Funciona sin conexion y nada sale del dispositivo.">
-<link rel="icon" href="icono-192.png" type="image/png">
-<link rel="apple-touch-icon" href="icono.png">
+<meta name="theme-color" content="#0f766e">
 <link rel="manifest" href="manifest.webmanifest">
-<style>
-  :root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-  html,body{margin:0}
-  img{max-width:100%}
-  [hidden]{display:none!important}
-</style>
+<link rel="icon" href="icono.png">
+<link rel="apple-touch-icon" href="icono-192.png">
 <title>Cuaderno de Frases</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap">
 <style>
@@ -394,6 +387,50 @@ table.err td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:60
   </div>
 </section>
 
+<!-- ============ ESCUCHA · PREPARACIÓN ============ -->
+<section id="v-escuchaprep" class="hidden">
+  <h2>Escucha</h2>
+  <p class="lead">Bucle de audio en inglés con el español en pantalla. Manos libres: eliges qué quieres oír y lo dejas correr.</p>
+
+  <h3>Archivos</h3>
+  <p class="muted" style="margin:0">Pulsa para activar o desactivar. Es la misma selección que en Archivos.</p>
+  <div class="chips" id="escChips"></div>
+
+  <div class="grid">
+    <label class="field">Qué entra
+      <select id="escFiltro">
+        <option value="hoy">Solo las que tocan hoy</option>
+        <option value="todas" selected>Todas las tarjetas</option>
+        <option value="falladas">Solo las que he fallado alguna vez</option>
+        <option value="nuevas">Solo las que no he visto nunca</option>
+        <option value="marcadas">Solo las marcadas con la banderita</option>
+      </select></label>
+    <label class="field">Cuántas frases
+      <select id="escCuantas">
+        <option value="10">10</option><option value="20">20</option>
+        <option value="40" selected>40</option><option value="80">80</option>
+        <option value="0">Todas las que haya</option>
+      </select></label>
+    <label class="field">Orden
+      <select id="escOrden">
+        <option value="file">Orden del archivo</option>
+        <option value="random" selected>Aleatorio</option>
+      </select></label>
+    <label class="field">Repeticiones de cada frase
+      <select id="escReps">
+        <option value="2">2</option><option value="3">3</option>
+        <option value="4" selected>4</option><option value="6">6</option>
+      </select></label>
+  </div>
+  <label class="check"><input type="checkbox" id="escBucle"> Al llegar al final, volver a empezar
+    <span class="tiny" style="display:block">Sin esto, la sesión termina cuando se acaban las frases.</span></label>
+  <div class="row">
+    <button class="btn primary" id="escGo">Empezar</button>
+    <button class="btn ghost sm" id="escBack">Volver</button>
+    <span class="muted" id="escCuenta"></span>
+  </div>
+</section>
+
 <!-- ============ ESCUCHA ============ -->
 <section id="v-escucha" class="hidden">
   <div class="row" style="margin-top:18px;justify-content:space-between">
@@ -519,7 +556,12 @@ table.err td.n{text-align:right;font-variant-numeric:tabular-nums;font-weight:60
   </div>
   <label class="check"><input type="checkbox" id="cfgAutoQ"> Leer en voz alta el enunciado al aparecer cada tarjeta</label>
   <label class="check"><input type="checkbox" id="cfgAutoNext"> Pasar solo a la siguiente al acertar
-    <span class="tiny" style="display:block">Espera a que termine el audio en inglés y dos segundos más. Si tocas cualquier cosa, el avance se cancela y te quedas en la frase.</span></label>
+    <span class="tiny" style="display:block">Espera a que termine el audio en inglés y el tiempo que elijas abajo. Si tocas cualquier cosa, el avance se cancela y te quedas en la frase.</span></label>
+  <div class="grid">
+    <label class="field">Cuánto espera antes de pasar <select id="cfgAutoWait">
+      <option value="2">2 segundos</option><option value="5" selected>5 segundos</option>
+      <option value="10">10 segundos</option><option value="20">20 segundos</option></select></label>
+  </div>
 
   <h3>Pantalla</h3>
   <div class="grid">
@@ -553,6 +595,9 @@ You look like your brother. (juː lʊk laɪk jɔː ˈbrʌðə)	Te pareces a tu h
 
   <h3>Zona delicada</h3>
   <div class="row"><button class="btn sm" id="cfgWipe">Borrar todo y empezar de cero</button></div>
+
+  <h3>Versión</h3>
+  <p class="muted" id="verBox"></p>
 </section>
 </main>
 </div>
@@ -566,6 +611,8 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const DASH = /\s[–—-]\s/;               // raya que separa palabra y frase de ejemplo
 const KEY = 'cuaderno.v1';
+const VERSION = 'v6';
+const VERSION_FECHA = '26 de octubre de 2026';
 const DAY = 86400000;
 const INTERVALS = [0, 1, 3, 7, 16, 35, 90];   // caja 0 = nueva; caja 7 = asentada
 const today = () => { const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); };
@@ -575,14 +622,14 @@ const iso = t => new Date(t).toISOString().slice(0,10);
 const DEF = {
   v: 1, files: [], items: {}, prog: {}, errors: {}, errLog: [], days: {},
   cfg: { newPerDay:10, maxPerDay:60, order:'file', example:false, dictSrs:false,
-         voiceEn:'', voiceEs:'', rate:'0.85', shadow:'1.5', autoQ:false, autoNext:false,
+         voiceEn:'', voiceEs:'', rate:'0.85', shadow:'1.5', autoQ:false, autoNext:false, autoWait:'5',
          font:'', theme:'', noSug:true }
 };
 let S = structuredClone(DEF);
 /* enlace entre los controles de Ajustes y las claves de configuración */
 const CFG = { cfgNew:'newPerDay', cfgMax:'maxPerDay', cfgOrder:'order', cfgExample:'example',
   cfgDictSrs:'dictSrs', cfgVoiceEn:'voiceEn', cfgVoiceEs:'voiceEs', cfgRate:'rate',
-  cfgShadow:'shadow', cfgAutoQ:'autoQ', cfgAutoNext:'autoNext',
+  cfgShadow:'shadow', cfgAutoQ:'autoQ', cfgAutoNext:'autoNext', cfgAutoWait:'autoWait',
   cfgFont:'font', cfgTheme:'theme', cfgNoSug:'noSug' };
 
 function load(){
@@ -1084,18 +1131,26 @@ async function keepAwake(on){
 }
 
 /* ============================== VISTAS ================================ */
-const VIEWS = ['inicio','practica','libre','escucha','biblioteca','progreso','errores','ajustes'];
+const VIEWS = ['inicio','practica','libre','escuchaprep','escucha','biblioteca','progreso','errores','ajustes'];
 function show(v){
   VIEWS.forEach(x => $('v-'+x) && $('v-'+x).classList.toggle('hidden', x !== v));
   document.querySelectorAll('#nav button').forEach(b =>
     b.setAttribute('aria-current', String(b.dataset.view === v)));
   if(v !== 'escucha'){ stopSpeak(); listenStop(); }
+  if(v === 'escuchaprep') prepararEscucha();
   if(v !== 'practica') stopShadow();
   window.scrollTo(0,0);
   if(v === 'inicio') renderToday();
   if(v === 'biblioteca') renderLib();
   if(v === 'progreso') renderProgress();
   if(v === 'errores') renderErrors();
+  if(v === 'ajustes') renderVersion();
+}
+/* Saber de un vistazo qué versión está instalada en este dispositivo. */
+function renderVersion(){
+  const box = $('verBox'); if(!box) return;
+  box.innerHTML = '<b>Cuaderno de Frases ' + VERSION + '</b> · ' + VERSION_FECHA +
+    '<br><span class="tiny">Si en otro dispositivo ves una versión distinta, ciérralo del todo y vuelve a abrirlo para que se actualice.</span>';
 }
 $('nav').addEventListener('click', e => { const b = e.target.closest('button'); if(b) show(b.dataset.view); });
 
@@ -1129,7 +1184,7 @@ document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startMo
 let sess = null;   // {mode, queue, pos, results, srs}
 function startMode(mode){
   if(!activeIds().length){ show('biblioteca'); return; }
-  if(mode === 'escucha'){ listenStart(); return; }
+  if(mode === 'escucha'){ show('escuchaprep'); return; }   // la escucha pasa por su pantalla
   if(mode === 'libre'){ prepararLibre(); return; }      // la libre pasa por su pantalla
   let queue;
   if(mode === 'practica'){
@@ -1358,9 +1413,10 @@ function armarAvance(){
   const aviso = document.createElement('div');
   aviso.className = 'tiny'; aviso.id = 'autoAviso';
   aviso.style.marginTop = '8px';
-  aviso.textContent = 'Pasando a la siguiente… toca cualquier cosa para quedarte aquí.';
+  const seg = parseInt(S.cfg.autoWait, 10) || 5;
+  aviso.textContent = 'Pasando a la siguiente en ' + seg + ' segundos… toca cualquier cosa para quedarte aquí.';
   $('pSol').appendChild(aviso);
-  autoTimer = setTimeout(() => { cancelarAvance(); nextCard(); }, 2000);
+  autoTimer = setTimeout(() => { cancelarAvance(); nextCard(); }, seg * 1000);
   ['click','keydown','touchstart','wheel'].forEach(ev =>
     $('v-practica').addEventListener(ev, cancelarAvance, { once:true, passive:true }));
 }
@@ -1470,24 +1526,67 @@ function logError(cats, given, expected){
 
 /* ============================== ESCUCHA =============================== */
 let L = null;
-function listenStart(){
-  const cards = pickListenSet();
+/* Pantalla de preparación: elige de dónde salen las frases, cuántas y cómo suenan. */
+function prepararEscucha(){
+  $('escChips').innerHTML = S.files.map(f => {
+    const n = Object.values(S.items).filter(i => i.file === f.id).length;
+    return '<div class="chip'+(f.on ? ' active' : '')+'" data-ef="'+f.id+'" tabindex="0">' +
+      '<span class="dot"></span><span>'+esc(f.name)+'</span><span class="n">'+n+'</span></div>';
+  }).join('') || '<p class="muted">No hay archivos cargados.</p>';
+  contarEscucha();
+}
+function cartasEscucha(){
+  const filtro = $('escFiltro').value;
+  let cards = allCards();
+  if(filtro === 'falladas') cards = cards.filter(c => (S.prog[c.cid]||{}).lapses > 0);
+  else if(filtro === 'nuevas') cards = cards.filter(c => !S.prog[c.cid]);
+  else if(filtro === 'marcadas') cards = cards.filter(c => S.items[c.item].flag);
+  else if(filtro === 'hoy'){ const t = today();
+    cards = cards.filter(c => { const p = S.prog[c.cid]; return p && p.box < 7 && p.due <= t; }); }
+  return cards;
+}
+function contarEscucha(){
+  const n = cartasEscucha().length;
+  $('escCuenta').textContent = n ? n + (n === 1 ? ' frase disponible' : ' frases disponibles')
+                                 : 'No hay frases con ese filtro';
+  $('escGo').disabled = !n;
+}
+$('escChips').addEventListener('click', e => {
+  const c = e.target.closest('[data-ef]'); if(!c) return;
+  const f = S.files.find(x => x.id === c.dataset.ef); f.on = !f.on; save(); prepararEscucha();
+});
+$('escChips').addEventListener('keydown', e => {
+  if((e.key === 'Enter' || e.key === ' ') && e.target.dataset.ef){ e.preventDefault(); e.target.click(); }
+});
+$('escFiltro').addEventListener('change', contarEscucha);
+$('escBack').onclick = () => show('inicio');
+$('escGo').onclick = () => {
+  let q = cartasEscucha();
+  if($('escOrden').value === 'random') shuffle(q);
+  const n = parseInt($('escCuantas').value, 10);
+  if(n > 0) q = q.slice(0, n);
+  if(!q.length) return;
+  listenStart(q, parseInt($('escReps').value, 10), $('escBucle').checked);
+};
+
+function listenStart(cards, reps, bucle){
+  if(!cards || !cards.length){ cards = cartasEscucha(); }
   if(!cards.length){ show('biblioteca'); return; }
-  L = { q: cards, i:0, rep:0, paused:false, timer:null };
+  L = { q: cards, i:0, rep:0, paused:false, timer:null,
+        reps: reps || 4, bucle: !!bucle, fin:false };
   show('escucha'); keepAwake(true);
   $('lWake').textContent = 'wakeLock' in navigator
     ? 'La pantalla se mantiene encendida mientras estés en este modo.'
     : 'Este navegador no permite mantener la pantalla encendida: si se apaga, el audio se cortará.';
   listenRender();
 }
-function pickListenSet(){
-  const d = dueList(); const base = d.length ? d : allCards();
-  const arr = base.slice(); if(S.cfg.order === 'random') shuffle(arr);
-  return arr.slice(0, 60);
-}
 function listenRender(){
   if(!L) return;
-  if(L.i >= L.q.length){ L.i = 0; }
+  if(L.i >= L.q.length){
+    if(!L.bucle){ listenFin(); return; }
+    L.i = 0;                                   // en bucle, vuelta a empezar
+  }
+  L.fin = false;
   const f = face(L.q[L.i]);
   $('lEs').textContent = f.es;
   $('lEn').textContent = $('lShowEn').checked ? f.en : '';
@@ -1495,20 +1594,33 @@ function listenRender(){
   $('lCount').textContent = (L.i+1) + ' / ' + L.q.length;
   L.rep = 0; listenDots(); listenPlay();
 }
+function listenFin(){
+  L.fin = true; clearTimeout(L.timer); stopSpeak();
+  $('lEs').textContent = 'Sesión terminada';
+  $('lEn').textContent = L.q.length + (L.q.length === 1 ? ' frase escuchada.' : ' frases escuchadas.');
+  $('lIpa').innerHTML = ''; $('lDots').innerHTML = '';
+  $('lCount').textContent = L.q.length + ' / ' + L.q.length;
+}
 function listenDots(){
-  $('lDots').innerHTML = [0,1,2,3].map(i => '<i class="'+(i < L.rep ? 'on' : '')+'"></i>').join('');
+  const n = (L && L.reps) || 4;
+  $('lDots').innerHTML = Array.from({length:n}, (_,i) =>
+    '<i class="'+(i < L.rep ? 'on' : '')+'"></i>').join('');
 }
 function listenPlay(){
-  if(!L || L.paused) return;
+  if(!L || L.paused || L.fin) return;
   const f = face(L.q[L.i]);
   speak(f.en, 'en', null, () => {
-    if(!L || L.paused) return;
+    if(!L || L.paused || L.fin) return;
     L.rep++; listenDots();
-    if(L.rep >= 4){ L.timer = setTimeout(() => listenNext(), 1200); return; }
+    if(L.rep >= (L.reps || 4)){ L.timer = setTimeout(() => listenNext(), 1200); return; }
     L.timer = setTimeout(listenPlay, 3000);
   });
 }
-function listenNext(){ if(!L) return; clearTimeout(L.timer); stopSpeak(); L.i++; listenRender(); }
+function listenNext(){
+  if(!L) return; clearTimeout(L.timer); stopSpeak();
+  if(L.fin){ show('escuchaprep'); return; }   // terminada: tocar lleva a la pantalla de ajustes
+  L.i++; listenRender();
+}
 function listenStop(){ if(L){ clearTimeout(L.timer); L = null; } keepAwake(false); }
 $('lStage').onclick = listenNext;
 $('lStage').onkeydown = e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); listenNext(); } };
@@ -1762,11 +1874,9 @@ document.addEventListener('visibilitychange', () => {
 if(!ttsOk) document.querySelectorAll('.spk').forEach(b => b.style.display = 'none');
 </script>
 <script>
-/* Sin conexión: solo funciona servido por http(s), no desde un archivo local. */
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+if('serviceWorker' in navigator){
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
 }
 </script>
-
 </body>
 </html>

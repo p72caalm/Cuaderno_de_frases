@@ -1,6 +1,6 @@
 /* Cuaderno de Frases — funcionamiento sin conexión.
    Guarda la aplicación y las fuentes en la caché del navegador. */
-const CACHE = 'cuaderno-v5';
+const CACHE = 'cuaderno-v6';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icono.png', './icono-192.png'];
 
 self.addEventListener('install', e => {
